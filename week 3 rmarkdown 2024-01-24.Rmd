@@ -1,0 +1,114 @@
+---
+title: "Week 3 RMarkdown"
+author: "Meagan Docherty"
+date: "2024-01-24"
+output: html_document
+---
+
+First, set up by loading the data and any required libraries:
+```{r setup, message=F, warning=F}
+# I am setting message=F and warning=F to turn off messages and warnings that R prints when it loads the libraries.
+# first I'll load in the data:
+load("C:/Users/mdocher/OneDrive - Bowling Green State University 2/Classes/PSYC 7800/Spring 2020/Data/Pathways/pathways data wide.Rda")
+#load("C:/Users/doche/OneDrive - Bowling Green State University/Classes/PSYC 7800/Spring 2020/Data/Pathways/pathways data wide.Rda")
+# then I'll load any required libraries:
+library(lavaan)
+library(psych)
+library(ggplot2)
+```
+
+Then we can practice running a latent growth curve model. For a helpful tutorial on latent growth curve models in R, visit this page: https://lavaan.ugent.be/tutorial/growth.html. For a much more in-depth tutorial on SEM in R using lavaan more generally: https://stats.oarc.ucla.edu/r/seminars/rsem/.  
+
+In R, we specify factor loadings with =~, with the latent variable on the left and the variables with factor loadings on the right. 
+
+To set a factor loading for a variable to a specific value, prefix the variable name with the factor loading and an asterisk: 1*walden_0
+
+Latent variables can have whatever name you want, within R's rules. I believe they have to start with a letter (not a number) and have to be all one word. Each latent variable should have its own unique name. When I specify growth curve models I often just use I for intercept, S for (linear) slope, and Q for quadratic, but you can use other names if you want.
+
+First we'll specify a linear growth curve model, with the intercept at the first time point, just using the first three waves of data. All R really needs is the latent variables and observed variables with factor loadings, and it will run the model with some default settings.
+
+Note that I first save the model syntax into a model object I'm calling linMod, and then I use the growth() command from the lavaan package to run the model and save the results in a linFit object. **NOTE** it is very important to use the growth() command rather than the sem() command when running LGCMs. Finally, I use the summary command to get the model output, with fit.measures=T to get fit statistics for the model.
+```{r}
+linMod = "I =~ 1*walden_0 + 1*walden_1 + 1*walden_2
+S =~ 0*walden_0 + 1*walden_1 + 2*walden_2"
+
+linFit<-growth(linMod, data=pathwayswide)
+summary(linFit, fit.measures=T)
+```
+
+Although you can get by running LGCMs in R this way, I recommend writing out full syntax whenever possible, so that you're aware of all the parameters in the model. Note that the full syntax below gets us the same model as above, but now we've specified everything that R was just doing by default.
+```{r}
+linMod_long = "I =~ 1*walden_0 + 1*walden_1 + 1*walden_2
+S =~ 0*walden_0 + 1*walden_1 + 2*walden_2
+
+# means of I and S latent variables:
+I ~ 1
+S ~ 1
+
+# variance of I, variance of S, and covariance between I and S:
+I ~~ I
+S ~~ S
+I ~~ S
+
+# set intercepts of observed variables to 0:
+walden_0 ~ 0
+walden_1 ~ 0
+walden_2 ~ 0
+
+# residual variances of observed variables:
+walden_0 ~~ walden_0
+walden_1 ~~ walden_1
+walden_2 ~~ walden_2"
+
+linFit_long<-growth(linMod_long, data=pathwayswide)
+summary(linFit_long, fit.measures=T)
+```
+
+**On your own**, I recommend playing around with different ways of coding time to see how it affects the means and variances of the intercept and slope variables.
+
+To compare the fit of this linear model to an intercept-only (no change) model, we can run the intercept-only model and then run a test to compare fit:
+```{r}
+intMod = "I =~ 1*walden_0 + 1*walden_1 + 1*walden_2"
+intFit<-growth(intMod, data=pathwayswide)
+summary(intFit, fit.measures=T)
+
+lavTestLRT(intFit, linFit)
+```
+
+Finally we can plot both the average trajectories from the intercept-only and linear models against the observed means:
+```{r}
+# attach pathwayswide data
+attach(pathwayswide)
+# store factor loadings in a variable
+x=0:2
+# translate them into months
+month=x*6
+# store the variable means for plotting
+means <- c(mean(walden_0,na.rm=T),
+           mean(walden_1,na.rm=T),
+           mean(walden_2,na.rm=T))
+# calculate predictions from intercept-only and linear models
+# coef() gets coefficients from the model, and then we're extracting the mean intercept and slope values to plug into prediction equations.
+yint=x*0+coef(intFit)["I~1"]
+ylin=x*coef(linFit)["S~1"]+coef(linFit)["I~1"]
+
+# plot means and two average trajectories
+
+plot(x=x,
+     y=means,
+     xaxt="n",
+     ylab="Regulation",
+     xlab="Months from baseline",
+     ylim=c(2.6,2.9))
+lines(x=x,y=yint)
+lines(x=x,y=ylin,
+      col="red",
+      lty=2)
+legend("bottomright",
+       legend=c("means","intercept-only","linear"),
+       lty=c(NA,1,2),
+       pch=c(1,NA,NA),
+       col=c("black","black","red"))
+axis(1,at=x,labels=month)
+```
+

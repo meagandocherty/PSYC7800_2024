@@ -1,0 +1,103 @@
+---
+title: "Week 3 in-class activity RMarkdown"
+author: "Meagan Docherty"
+date: "2024-01-24"
+output: html_document
+---
+
+First, set up by loading the data and any required libraries:
+```{r setup, message=F, warning=F}
+# I am setting message=F and warning=F to turn off messages and warnings that R prints when it loads the libraries.
+# first I'll load in the data:
+load("C:/Users/mdocher/OneDrive - Bowling Green State University 2/Classes/PSYC 7800/Spring 2020/Data/Pathways/pathways data wide.Rda")
+#load("C:/Users/doche/OneDrive - Bowling Green State University/Classes/PSYC 7800/Spring 2020/Data/Pathways/pathways data wide.Rda")
+# then I'll load any required libraries:
+library(lavaan)
+library(psych)
+library(ggplot2)
+```
+
+1. Model an intercept-only growth curve for self-regulation (walden) from baseline to the seven-year follow-up using all 11 time points. Obtain parameter estimates and model fit indices.
+
+```{r}
+intMod <- "I =~ 1*walden_0 + 1*walden_1 + 1*walden_2 + 1*walden_3 + 1*walden_4 + 1*walden_5 + 1*walden_6 + 1*walden_7 + 1*walden_8 + 1*walden_9 + 1*walden_10"
+intFit <- growth(intMod, data=pathwayswide)
+summary(intFit, fit.measures=T)
+```
+
+2. Model a linear growth curve for self-regulation (walden) from baseline to the seven-year follow-up using all 11 time points. Obtain parameter estimates and model fit indices.
+
+```{r}
+linMod <- "I =~ 1*walden_0 + 1*walden_1 + 1*walden_2 + 1*walden_3 + 1*walden_4 + 1*walden_5 + 1*walden_6 + 1*walden_7 + 1*walden_8 + 1*walden_9 + 1*walden_10
+L =~ 0*walden_0 + 1*walden_1 + 2*walden_2 + 3*walden_3 + 4*walden_4 + 5*walden_5 + 6*walden_6 + 8*walden_7 + 10*walden_8 + 12*walden_9 + 14*walden_10"
+linFit <- growth(linMod, data=pathwayswide)
+summary(linFit, fit.measures=T)
+```
+
+3. Model a quadratic growth curve for self-regulation (walden) from baseline to the seven-year follow-up using all 11 time points. Obtain parameter estimates and model fit indices.
+
+```{r}
+quaMod <- "I =~ 1*walden_0 + 1*walden_1 + 1*walden_2 + 1*walden_3 + 1*walden_4 + 1*walden_5 + 1*walden_6 + 1*walden_7 + 1*walden_8 + 1*walden_9 + 1*walden_10
+L =~ 0*walden_0 + 1*walden_1 + 2*walden_2 + 3*walden_3 + 4*walden_4 + 5*walden_5 + 6*walden_6 + 8*walden_7 + 10*walden_8 + 12*walden_9 + 14*walden_10
+Q =~ 0*walden_0 + 1*walden_1 + 4*walden_2 + 9*walden_3 + 16*walden_4 + 25*walden_5 + 36*walden_6 + 64*walden_7 + 100*walden_8 + 144*walden_9 + 196*walden_10"
+
+quaMod <- "I =~ 1*walden_0 + 1*walden_1 + 1*walden_2 + 1*walden_3 + 1*walden_4 + 1*walden_5 + 1*walden_6 + 1*walden_7 + 1*walden_8 + 1*walden_9 + 1*walden_10
+L =~ 0*walden_0 + .1*walden_1 + .2*walden_2 + .3*walden_3 + .4*walden_4 + .5*walden_5 + .6*walden_6 + .8*walden_7 + 1*walden_8 + 1.2*walden_9 + 1.4*walden_10
+Q =~ 0*walden_0 + .01*walden_1 + .04*walden_2 + .09*walden_3 + .16*walden_4 + .25*walden_5 + .36*walden_6 + .64*walden_7 + 1.00*walden_8 + 1.44*walden_9 + 1.96*walden_10"
+
+quaMod <- "I =~ 1*walden_0 + 1*walden_1 + 1*walden_2 + 1*walden_3 + 1*walden_4 + 1*walden_5 + 1*walden_6 + 1*walden_7 + 1*walden_8 + 1*walden_9 + 1*walden_10
+L =~ 0*walden_0 + .5*walden_1 + 1*walden_2 + 1.5*walden_3 + 2*walden_4 + 2.5*walden_5 + 3*walden_6 + 4*walden_7 + 5*walden_8 + 6*walden_9 + 7*walden_10
+Q =~ 0*walden_0 + .25*walden_1 + 1*walden_2 + 2.25*walden_3 + 4*walden_4 + 6.25*walden_5 + 9*walden_6 + 16*walden_7 + 25*walden_8 + 36*walden_9 + 49*walden_10"
+
+quaFit <- growth(quaMod, data=pathwayswide)
+summary(quaFit, fit.measures=T)
+```
+
+4. Determine which is the best-fitting model (intercept-only, linear, or quadratic), explain your reasoning, and interpret the model (e.g., describe the average trend, and the degree of individual differences in the trend).
+```{r}
+lavTestLRT(intFit, linFit, quaFit)
+lavTestLRT(linFit, intFit, quaFit)
+lavTestLRT(quaFit, linFit, intFit)
+```
+
+BONUS (optional but recommended):
+
+5. Plot the observed means of self-regulation at each time point, as well as the average trajectory from each of the intercept-only, linear, and quadratic models. Describe which of the three models appears to best account for the observed means.
+
+
+```{r}
+# attach pathwayswide data
+attach(pathwayswide)
+# store factor loadings in a variable
+x=0:2
+# translate them into months
+month=x*6
+# store the variable means for plotting
+means <- c(mean(walden_0,na.rm=T),
+           mean(walden_1,na.rm=T),
+           mean(walden_2,na.rm=T))
+# calculate predictions from intercept-only and linear models
+# coef() gets coefficients from the model, and then we're extracting the mean intercept and slope values to plug into prediction equations.
+yint=x*0+coef(intFit)["I~1"]
+ylin=x*coef(linFit)["S~1"]+coef(linFit)["I~1"]
+
+# plot means and two average trajectories
+
+plot(x=x,
+     y=means,
+     xaxt="n",
+     ylab="Regulation",
+     xlab="Months from baseline",
+     ylim=c(2.6,2.9))
+lines(x=x,y=yint)
+lines(x=x,y=ylin,
+      col="red",
+      lty=2)
+legend("bottomright",
+       legend=c("means","intercept-only","linear"),
+       lty=c(NA,1,2),
+       pch=c(1,NA,NA),
+       col=c("black","black","red"))
+axis(1,at=x,labels=month)
+```
+
